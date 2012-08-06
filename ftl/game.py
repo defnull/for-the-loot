@@ -1,6 +1,8 @@
 import pyglet, random
 from pyglet.gl import *
 
+from ftl.entity import Player
+
 class Game(object):
     def __init__(self):
         pass
@@ -11,7 +13,9 @@ class Game(object):
         self.window = pyglet.window.Window(800, 600)
         self.window.set_handler('on_draw', self.on_draw)
         self.window.set_vsync(True)
-        self.fps_display = pyglet.clock.ClockDisplay()
+        self.fps_display  = pyglet.clock.ClockDisplay()
+
+        self.player = Player(self)
 
         self.backgr_batch = pyglet.graphics.Batch()
         self.object_batch = pyglet.graphics.Batch()
@@ -36,6 +40,7 @@ class Game(object):
         self.window.clear()
         self.backgr_batch.draw()
         self.object_batch.draw()
+        self.player.draw()
         self.effect_batch.draw()
         self.window_batch.draw()
         self.fps_display.draw()
