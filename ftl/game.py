@@ -3,6 +3,8 @@ from pyglet.gl import *
 
 from ftl.entity import Player
 
+from pyglet.window import key
+
 class Game(object):
     def __init__(self):
         pass
@@ -13,6 +15,12 @@ class Game(object):
         self.window = pyglet.window.Window(800, 600)
         self.window.set_handler('on_draw', self.on_draw)
         self.window.set_vsync(True)
+
+        self.debug_label = pyglet.text.Label('debug', font_name='sans', font_size=8, x=10, y=10)
+
+        self.keys = pyglet.window.key.KeyStateHandler()
+        self.window.push_handlers(self.keys)
+
         self.fps_display  = pyglet.clock.ClockDisplay()
 
         self.player = Player(self)
@@ -21,6 +29,7 @@ class Game(object):
         self.object_batch = pyglet.graphics.Batch()
         self.effect_batch = pyglet.graphics.Batch()
         self.window_batch = pyglet.graphics.Batch()
+        self.debug_label.batch = self.window_batch
 
         self.window_offset = (0,0,0.0)
 
@@ -35,20 +44,31 @@ class Game(object):
         glLoadIdentity()
         w,h = self.window.width, self.window.height
         x,y = self.player.position
-        glTranslatef(x+w/2, y+h/2, 0.0)
+        glTranslatef(-x+w/2, -y+h/2, 0.0)
         #glScalef(self.zoom, self.zoom, 1.0)
         #glTranslatef(-t.x, -t.y, 0.0)
+
+        self.debug(x, y, self.player.moves)
 
         self.window.clear()
         self.backgr_batch.draw()
         self.object_batch.draw()
         self.player.draw()
         self.effect_batch.draw()
+        glLoadIdentity()
         self.window_batch.draw()
         self.fps_display.draw()
 
     def on_tick(self, dt):
-        pass
+        dx, dy = 0.0, 0.0
+        if self.keys[key.RIGHT]:      dx += dt*100
+        if self.keys[key.LEFT]:       dx -= dt*100
+        if self.keys[key.UP]:         dy += dt*100
+        if self.keys[key.DOWN]:       dy -= dt*100
+        self.player.move(dx, dy)
+
+    def debug(self, *a):
+        self.debug_label.text = ', '.join(map(repr, a))
 
 def main():
     Game().start()
