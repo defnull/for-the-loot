@@ -1,4 +1,4 @@
-import pyglet, random
+import pyglet, random, os
 from pyglet.gl import *
 
 from ftl.entity import Player
@@ -8,7 +8,7 @@ class Game(object):
         pass
 
     def setup(self):
-        pyglet.resource.path = ['./resources']
+        pyglet.resource.path = [os.path.join(os.path.dirname(__file__), 'resources')]
         pyglet.resource.reindex()
         self.window = pyglet.window.Window(800, 600)
         self.window.set_handler('on_draw', self.on_draw)
@@ -33,7 +33,9 @@ class Game(object):
     def on_draw(self):
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
-        glTranslatef(*self.window_offset)
+        w,h = self.window.width, self.window.height
+        x,y = self.player.position
+        glTranslatef(x+w/2,y+h/2,0.0)
         #glScalef(self.zoom, self.zoom, 1.0)
         #glTranslatef(-t.x, -t.y, 0.0)
 
