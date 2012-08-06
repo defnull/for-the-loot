@@ -1,4 +1,4 @@
-.PHONY: clean
+.PHONY: clean push
 
 play: vbuild
 	. venv/bin/activate; python -m ftl.game
@@ -7,6 +7,7 @@ vbuild: venv
 	. venv/bin/activate; python setup.py build
 
 push:
+	git commit -a
 	git fetch
 	git rebase
 	git push
