@@ -35,7 +35,7 @@ class Game(object):
         glLoadIdentity()
         w,h = self.window.width, self.window.height
         x,y = self.player.position
-        glTranslatef(x+w/2,y+h/2,0.0)
+        glTranslatef(x+w/2, y+h/2, 0.0)
         #glScalef(self.zoom, self.zoom, 1.0)
         #glTranslatef(-t.x, -t.y, 0.0)
 
