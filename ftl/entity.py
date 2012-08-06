@@ -16,6 +16,7 @@ class Player(Entity):
         Entity.__init__(self, game)
         grid = pyglet.image.ImageGrid(pyglet.resource.image('player.png'), 4, 4)
         for img in grid:
+            img.height = img.width = 64
             img.anchor_x = img.width/2
             img.anchor_y = img.height/3
 
@@ -24,7 +25,7 @@ class Player(Entity):
             frames = []
             standing = grid[row*4]
             for col in range(4):
-                frame = pyglet.image.AnimationFrame(grid[row*4+col], 0.1)
+                frame = pyglet.image.AnimationFrame(grid[row*4+col], 0.15)
                 frames.append(frame)
             anim = pyglet.image.Animation(frames)
             self.sprites.append(map(pyglet.sprite.Sprite, (standing, anim)))

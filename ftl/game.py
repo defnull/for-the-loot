@@ -33,6 +33,15 @@ class Game(object):
 
         self.window_offset = (0,0,0.0)
 
+        from ftl.tiles import World
+        self.world = World((
+            (0,0,0,0,0),
+            (0,1,2,1,0),
+            (0,2,3,2,0),
+            (0,1,2,1,0),
+            (0,0,0,0,0),
+        ))
+
         pyglet.clock.schedule_interval(self.on_tick, 1.0/60)
 
     def start(self):
@@ -44,13 +53,14 @@ class Game(object):
         glLoadIdentity()
         w,h = self.window.width, self.window.height
         x,y = self.player.position
-        glTranslatef(-x+w/2, -y+h/2, 0.0)
+        glTranslatef(int(-x+w/2), int(-y+h/2), 0.0)
         #glScalef(self.zoom, self.zoom, 1.0)
         #glTranslatef(-t.x, -t.y, 0.0)
 
         self.debug(x, y, self.player.moves)
 
         self.window.clear()
+        self.world.draw()
         self.backgr_batch.draw()
         self.object_batch.draw()
         self.player.draw()
