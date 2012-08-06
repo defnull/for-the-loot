@@ -6,6 +6,11 @@ play: vbuild
 vbuild: venv
 	. venv/bin/activate; python setup.py build
 
+push:
+	git fetch
+	git rebase
+	git push
+
 venv: venv/bin/activate
 venv/bin/activate: requirements.txt
 	test -d venv || virtualenv venv
