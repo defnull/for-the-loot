@@ -1,19 +1,20 @@
 import pyglet, random, os
 from pyglet.gl import *
 
-from ftl.entity import Player
+from ftl.entity import Player, Fireball
 
 from pyglet.window import key
 
 from ftl.world import World
+from ftl.util import normvec
 
 
 class Game(object):
     def __init__(self):
-        pass
+        self.tick_callbacks = []
 
     def setup(self):
-        pyglet.resource.path = [os.path.join(os.path.dirname(__file__), 'resources')]
+        pyglet.resource.path = [os.path.join(os.path.dirname(__file__), 'resources/')]
         pyglet.resource.reindex()
         self.window = pyglet.window.Window(800, 600)
         self.window.set_handler('on_draw', self.on_draw)
@@ -58,8 +59,12 @@ class Game(object):
         self.world.draw()
         self.backgr_batch.draw()
         self.object_batch.draw()
-        self.player.draw()
-        self.effect_batch.draw()
+        if self.player.face == 'up':
+            self.effect_batch.draw()
+            self.player.draw()
+        else:
+            self.player.draw()
+            self.effect_batch.draw()
         glLoadIdentity()
         self.window_batch.draw()
         self.fps_display.draw()
@@ -79,8 +84,25 @@ class Game(object):
 
         self.player.move(dx*dt, dy*dt)
 
+        if self.keys[key.SPACE]:
+            bx, by = self.player.last_move
+            if bx or by:
+                bx, by = normvec((bx, by), 200)
+                bx += (0.5 - random.random()) * 100
+                by += (0.5 - random.random()) * 100
+                x, y = self.player.position
+                if self.player.face == 'up':     y += 10
+                if self.player.face == 'down':   y -= 10
+                if self.player.face == 'right':  x += 15
+                if self.player.face == 'left':   x -= 15
+                bullet = Fireball(self, (x,y+10), (bx, by), 1)
+
+
         if dx or dy:
             self.center_screen()
+        
+        for callback in self.tick_callbacks:
+            callback(dt)
 
     def center_screen(self):
         ''' Change window offset so the player sprite is in the middle of
