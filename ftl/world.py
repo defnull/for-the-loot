@@ -9,14 +9,15 @@ class World(object):
 
     tilesize = 32
 
-    def __init__(self, world_file):
+    def __init__(self, game, world_file):
         """ Build a new tileset from an image file """
+        self.game = game
         self.world_file = world_file
-        self.sprite_batch = pyglet.graphics.Batch()
+        self.sprite_batch = game.floor_batch
         self.sprites = {}
         self.load_world()
         self.load_tileset()
-        
+
     def load_world(self):
         with open(self.world_file, 'rb') as fp:
             self.mapdata = json.load(fp)
@@ -24,7 +25,7 @@ class World(object):
 
     def load_tileset(self):
         pyglet.resource.reindex()
-        img = pyglet.resource.image(self.mapdata['tileset'])
+        img = self.game.load_image(self.mapdata['tileset'])
         scale = float(self.tilesize) / img.width * 16
         grid = pyglet.image.ImageGrid(img, 16, 16)
         map(pixelate, grid)

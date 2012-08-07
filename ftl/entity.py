@@ -2,13 +2,7 @@ import pyglet, random, math
 from ftl.util import pixelate, center_image, lazy_attribute, cached_property
 from pyglet.image import Animation
 
-class Entity(object):
-    """A thing."""
-    def __init__(self, game):
-        self.game = game
 
-    def draw(self):
-        pass
 
 
 class Fireball(object):
@@ -23,17 +17,17 @@ class Fireball(object):
         self.sprite.batch = game.effect_batch
         self.game.tick_callbacks.append(self.tick_fireball)
 
-    @lazy_attribute
+    @cached_property
     def ani_fireball(self):
-        img  = pyglet.resource.image('firebolt.png')
+        img  = self.game.load_image('firebolt.png')
         grid = pyglet.image.ImageGrid(img, 1, 5)
         map(center_image, grid)
         map(pixelate, grid)
         return Animation.from_image_sequence(grid, 0.05)
 
-    @lazy_attribute
+    @cached_property
     def ani_smoke(self):
-        img  = pyglet.resource.image('smoke.png')
+        img  = self.game.load_image('smoke.png')
         grid = pyglet.image.ImageGrid(img, 1, 8)
         map(center_image, grid)
         map(pixelate, grid)
@@ -41,7 +35,7 @@ class Fireball(object):
 
     @cached_property
     def sprite(self):
-        sprite = pyglet.sprite.Sprite(self.ani_fireball)
+        sprite = pyglet.sprite.Sprite(self.ani_fireball, batch=self.game.effect_batch)
         sprite.scale = 2
         return sprite
 
@@ -65,6 +59,14 @@ class Fireball(object):
 
 
 
+class Entity(object):
+    """A thing."""
+    def __init__(self, game):
+        self.game = game
+
+    def draw(self):
+        pass
+
 
 
 class Player(Entity):
@@ -81,7 +83,7 @@ class Player(Entity):
         self.load_textures()
 
     def load_textures(self):
-        img = pyglet.resource.image('player.png')
+        img = self.game.load_image('player.png')
         grid = pyglet.image.ImageGrid(img, 4, 4)
         for img in grid:
             pixelate(img)
@@ -97,7 +99,7 @@ class Player(Entity):
             self.ani_running[name] = Animation.from_image_sequence(ani_run, 0.15)
             self.ani_standing[name] = img_stand
 
-        self.sprite = pyglet.sprite.Sprite(self.ani_standing['down'])
+        self.sprite = pyglet.sprite.Sprite(self.ani_standing['down'], batch=self.game.effect_batch)
         self.sprite.position = self.position
         self.moves = False
 
@@ -121,6 +123,4 @@ class Player(Entity):
                 self.sprite.image = self.ani_standing[self.face]
                 self.moving = False
 
-    def draw(self):
-        self.sprite.draw()
 
