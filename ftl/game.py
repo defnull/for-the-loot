@@ -99,9 +99,9 @@ class Game(object):
         if self.keys[key.UP]:    dy += self.player.speed
         if self.keys[key.DOWN]:  dy -= self.player.speed
         if self.keys[key.PLUS]:
-            self.camera_position[3] += 1
+            self.camera_position[2] += 1
         if self.keys[key.MINUS]:
-            self.camera_position[3] -= 1
+            self.camera_position[2] -= 1
 
         if self.keys[key.E]:
             e = Enemy(self)
@@ -126,7 +126,6 @@ class Game(object):
                 if self.player.face == 'right':  x += 15
                 if self.player.face == 'left':   x -= 15
                 bullet = Fireball(self, (x,y+10), (bx, by), 1.5)
-
 
         if dx or dy:
             self.center_screen()
