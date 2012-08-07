@@ -1,4 +1,6 @@
 import pyglet
+from ftl.util import pixelate
+
 
 class Entity(object):
     """A thing."""
@@ -12,37 +14,42 @@ class Entity(object):
 class Player(Entity):
     """The player sprite"""
 
+    speed = 100
+
     def __init__(self, game):
         Entity.__init__(self, game)
         grid = pyglet.image.ImageGrid(pyglet.resource.image('player.png'), 4, 4)
         for img in grid:
-            img.height = img.width = 64
+            pixelate(img)
+            img.width  *= 2
+            img.height *= 2
             img.anchor_x = img.width/2
             img.anchor_y = img.height/3
 
-        self.sprites = []
+        self.anims = []
         for row in range(4):
-            frames = []
             standing = grid[row*4]
+            frames = []
             for col in range(4):
                 frame = pyglet.image.AnimationFrame(grid[row*4+col], 0.15)
                 frames.append(frame)
             anim = pyglet.image.Animation(frames)
-            self.sprites.append(map(pyglet.sprite.Sprite, (standing, anim)))
+            self.anims.append(map(pyglet.sprite.Sprite, (standing, anim)))
+        self.sprite = self.anims[0][0]
         self.set_sprite('down')
-        self.position = [0,0]
+        self.position = [16,16]
         self.sprite.position = self.position
         self.moves = False
 
     def set_sprite(self, mode, move=False):
         if   mode == 'down':
-            self.sprite = self.sprites[3][1 if move else 0]
+            self.sprite = self.anims[3][1 if move else 0]
         elif mode == 'left':
-            self.sprite = self.sprites[2][1 if move else 0]
+            self.sprite = self.anims[2][1 if move else 0]
         elif mode == 'right':
-            self.sprite = self.sprites[1][1 if move else 0]
+            self.sprite = self.anims[1][1 if move else 0]
         elif mode == 'up':
-            self.sprite = self.sprites[0][1 if move else 0]
+            self.sprite = self.anims[0][1 if move else 0]
 
     def move(self, dx, dy):
         if dx or dy:
