@@ -1,7 +1,7 @@
 import pyglet, random, os
 from pyglet.gl import *
 
-from ftl.entity import Player, Fireball
+from ftl.entity import Player, Fireball, Enemy
 
 from pyglet.window import key
 
@@ -12,7 +12,7 @@ from ftl.util import normvec
 class Game(object):
     def __init__(self):
         self.tick_callbacks = []
-        self.window_offset = (0, 0, 0.0)
+        self.camera_position = [0, 0, -512]
 
     def start(self):
         self.window = pyglet.window.Window(800, 600)
@@ -67,14 +67,25 @@ class Game(object):
         self.status_label.text = msg
 
     def on_draw(self):
-        # Camera code
+        self.window.clear()
+        w,h = self.window.width, self.window.height
+
+        # Move camera above character
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
-        w,h = self.window.width, self.window.height
-        glTranslatef(*map(int,self.window_offset))
+        glTranslatef(*map(int, self.camera_position))
 
-        self.window.clear()
+        # Enable perspective projection
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+        gluPerspective(60, float(w)/h, 0.1, 100000)
+
         self.floor_batch.draw()
+
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+        glOrtho(-w/2, w/2, -h/2, h/2, -10000, 10000)
+
         self.object_batch.draw()
         self.effect_batch.draw()
 
@@ -87,6 +98,13 @@ class Game(object):
         if self.keys[key.LEFT]:  dx -= self.player.speed
         if self.keys[key.UP]:    dy += self.player.speed
         if self.keys[key.DOWN]:  dy -= self.player.speed
+        if self.keys[key.PLUS]:
+            self.camera_position[3] += 1
+        if self.keys[key.MINUS]:
+            self.camera_position[3] -= 1
+
+        if self.keys[key.E]:
+            e = Enemy(self)
         if self.keys[key.D]:
             import pdb; pdb.set_trace()
 
@@ -120,17 +138,17 @@ class Game(object):
         ''' Change window offset so the player sprite is in the middle of
             the visible screen. '''
         h, w = self.window.height, self.window.width
-        wx, wy = self.window_offset[:2]
+        wx, wy, wz = self.camera_position
         px, py = self.player.position
 
         # World position in center of screen
-        cx, cy = -wx+w/2, -wy+h/2
+        cx, cy = -wx, -wy
 
         # Desired world position in center of screen
         cx = px - max(-30, min(30, px-cx))
         cy = py - max(-30, min(30, py-cy))
 
-        self.window_offset = -cx+w/2, -cy+h/2, 0.0
+        self.camera_position = [-cx, -cy, wz]
 
 def main():
     Game().start()

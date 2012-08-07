@@ -64,8 +64,39 @@ class Entity(object):
     def __init__(self, game):
         self.game = game
 
-    def draw(self):
-        pass
+
+class Enemy(Entity):
+    speed = 80
+    def __init__(self, game):
+        Entity.__init__(self, game)
+        self.position  = [16,16]
+
+        img = self.game.load_image('player.png')
+        grid = pyglet.image.ImageGrid(img, 4, 4)
+        for img in grid:
+            pixelate(img)
+            img.width  *= 2
+            img.height *= 2
+            center_image(img, 0.5, 0.3)
+
+        self.ani_running = {}
+        self.ani_standing = {}
+        for row, name in enumerate(('up','right','left','down')):
+            ani_run   = [grid[row*4+col] for col in (2,3,2,1)]
+            img_stand = grid[row*4+0]
+            self.ani_running[name] = Animation.from_image_sequence(ani_run, 0.15)
+            self.ani_standing[name] = img_stand
+
+        self.sprite = pyglet.sprite.Sprite(self.ani_standing['down'], batch=self.game.object_batch)
+        self.sprite.position = self.position
+        self.moves = False
+        self.game.tick_callbacks.append(self.on_tick)
+
+    def on_tick(self, dt):
+        x,y = self.position
+        self.position = (x+(0.5-random.random())*self.speed*dt,
+                         y+(0.5-random.random())*self.speed*dt)
+        self.sprite.position = self.position
 
 
 
@@ -99,7 +130,7 @@ class Player(Entity):
             self.ani_running[name] = Animation.from_image_sequence(ani_run, 0.15)
             self.ani_standing[name] = img_stand
 
-        self.sprite = pyglet.sprite.Sprite(self.ani_standing['down'], batch=self.game.effect_batch)
+        self.sprite = pyglet.sprite.Sprite(self.ani_standing['down'], batch=self.game.object_batch)
         self.sprite.position = self.position
         self.moves = False
 
