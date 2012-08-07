@@ -1,5 +1,5 @@
 import pyglet, random, math
-from ftl.util import pixelate, center_image
+from ftl.util import pixelate, center_image, lazy_attribute, cached_property
 from pyglet.image import Animation
 
 class Entity(object):
@@ -17,39 +17,54 @@ class Fireball(object):
         self.pos = pos
         self.vec = vec
         self.livetime = livetime
+
+        self.sprite.position = pos
+        self.sprite.rotation = math.atan2(vec[0], vec[1]) * 180 / math.pi - 90
+        self.sprite.batch = game.effect_batch
+        self.game.tick_callbacks.append(self.tick_fireball)
+
+    @lazy_attribute
+    def ani_fireball(self):
         img  = pyglet.resource.image('firebolt.png')
         grid = pyglet.image.ImageGrid(img, 1, 5)
         map(center_image, grid)
-        ani  = Animation.from_image_sequence(grid, 0.05)
+        map(pixelate, grid)
+        return Animation.from_image_sequence(grid, 0.05)
 
+    @lazy_attribute
+    def ani_smoke(self):
         img  = pyglet.resource.image('smoke.png')
         grid = pyglet.image.ImageGrid(img, 1, 8)
         map(center_image, grid)
-        self.smoke  = Animation.from_image_sequence(grid, 0.1, loop=False)
-        
-        self.sprite = pyglet.sprite.Sprite(ani)
-        self.sprite.position = pos
-        self.sprite.rotation = 90 + math.atan2(vec[0], vec[1]) * 180 / math.pi
-        self.sprite.scale = 2
-        self.sprite.batch = game.effect_batch
-        game.tick_callbacks.append(self.on_tick)
+        map(pixelate, grid)
+        return Animation.from_image_sequence(grid, 0.1, loop=False)
 
-    def on_tick(self, dt):
+    @cached_property
+    def sprite(self):
+        sprite = pyglet.sprite.Sprite(self.ani_fireball)
+        sprite.scale = 2
+        return sprite
+
+    def tick_fireball(self, dt):
+        self.livetime -= dt
         self.sprite.x += dt*self.vec[0]
         self.sprite.y += dt*self.vec[1]
-        self.livetime -= dt
-        if self.livetime <= 0 and self.smoke:
-            self.sprite.image = self.smoke
+        if self.livetime <= 0:
+            self.sprite.image = self.ani_smoke
             self.sprite.rotation = 0
             self.vec = self.vec[0]*.2,  30
-            self.smoke = False
+            self.game.tick_callbacks.remove(self.tick_fireball)
+            self.game.tick_callbacks.append(self.tick_smoke)
+
+    def tick_smoke(self, dt):
+        self.livetime -= dt
         if self.livetime <= -1:
+            self.game.tick_callbacks.remove(self.tick_smoke)
             self.sprite.delete()
-            self.game.tick_callbacks.remove(self.on_tick)
 
-            
 
-        
+
+
 
 
 class Player(Entity):
