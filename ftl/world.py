@@ -19,7 +19,7 @@ class World(object):
         self.load_tileset()
 
     def load_world(self):
-        with open(self.world_file, 'rb') as fp:
+        with open(self.world_file, 'r') as fp:
             self.mapdata = json.load(fp)
             self.mapdata['map'] = self.mapdata['map'][::-1]
 
