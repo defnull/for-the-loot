@@ -20,17 +20,15 @@ class Fireball(object):
     @cached_property
     def ani_fireball(self):
         img  = self.game.load_image('firebolt.png')
-        grid = pyglet.image.ImageGrid(img, 1, 5)
-        map(center_image, grid)
-        map(pixelate, grid)
+        grid = list(pyglet.image.ImageGrid(img, 1, 5))
+        [(pixelate(g), center_image(g)) for g in grid]
         return Animation.from_image_sequence(grid, 0.05)
 
     @cached_property
     def ani_smoke(self):
         img  = self.game.load_image('smoke.png')
-        grid = pyglet.image.ImageGrid(img, 1, 8)
-        map(center_image, grid)
-        map(pixelate, grid)
+        grid = list(pyglet.image.ImageGrid(img, 1, 8))
+        [(pixelate(g), center_image(g)) for g in grid]
         return Animation.from_image_sequence(grid, 0.1, loop=False)
 
     @cached_property
@@ -41,14 +39,21 @@ class Fireball(object):
 
     def tick_fireball(self, dt):
         self.livetime -= dt
-        self.sprite.x += dt*self.vec[0]
-        self.sprite.y += dt*self.vec[1]
-        if self.livetime <= 0:
+        x,y = self.sprite.position
+        dx, dy = self.vec
+        dx *= dt
+        dy *= dt
+
+        if self.livetime <= 0 or self.game.world.wall_clip(x,y,dx,dy):
+            self.livetime = 0.0
             self.sprite.image = self.ani_smoke
             self.sprite.rotation = 0
-            self.vec = self.vec[0]*.2,  30
+            self.vec = self.vec[0]*.2, 30
             self.game.tick_callbacks.remove(self.tick_fireball)
             self.game.tick_callbacks.append(self.tick_smoke)
+        else:
+            self.sprite.x += dx
+            self.sprite.y += dy
 
     def tick_smoke(self, dt):
         self.livetime -= dt
@@ -136,19 +141,31 @@ class Player(Entity):
 
     def move(self, dx, dy):
         if dx or dy:
-            self.position[0] += dx
-            self.position[1] += dy
             absdy = abs(dy)
             if dx > absdy:     face = 'right'
             elif -dx > absdy:  face = 'left'
             elif dy > 0:       face = 'up'
             elif dy < 0:       face = 'down'
-            if face != self.face:
+
+            x,y = self.position
+            s = 10
+            for cx, cy in ((s,s),(-s,s),(s,-s),(-s,-s)):
+                if self.game.world.wall_clip(x+cx,y+cy,dx,dy):
+                    if self.moving:
+                        self.sprite.image = self.ani_standing[self.face]
+                        self.face = face
+                        self.moving = False
+                    return
+
+            if face != self.face or not self.moving:
                 self.sprite.image = self.ani_running[face]
                 self.face = face
+
+            self.moving = True
+            self.position[0] += dx
+            self.position[1] += dy
             self.sprite.position = map(int, self.position)
             self.last_move = [dx,dy]
-            self.moving = True
         else:
             if self.moving:
                 self.sprite.image = self.ani_standing[self.face]

@@ -21,6 +21,7 @@ class Game(object):
         self.floor_batch  = pyglet.graphics.Batch()
         self.object_batch = pyglet.graphics.Batch()
         self.effect_batch = pyglet.graphics.Batch()
+        self.wall_batch  = pyglet.graphics.Batch()
         self.window_batch = pyglet.graphics.Batch()
         self.status_label = pyglet.text.Label('Loading...', font_name='sans',
                                               font_size=8, x=10, y=10,
@@ -75,16 +76,12 @@ class Game(object):
         glLoadIdentity()
         glTranslatef(*map(int, self.camera_position))
 
-        # Enable perspective projection
-        glMatrixMode(GL_PROJECTION)
-        glLoadIdentity()
-        gluPerspective(60, float(w)/h, 0.1, 100000)
-
-        self.floor_batch.draw()
-
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
         glOrtho(-w/2, w/2, -h/2, h/2, -10000, 10000)
+
+        self.floor_batch.draw()
+        self.wall_batch.draw()
 
         self.object_batch.draw()
         self.effect_batch.draw()

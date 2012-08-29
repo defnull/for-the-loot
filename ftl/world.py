@@ -4,6 +4,9 @@ from ftl.util import pixelate
 import json
 from math import floor
 
+from ftl.physics import grid_walk
+from random import random as rand
+
 
 class World(object):
 
@@ -12,9 +15,10 @@ class World(object):
     def __init__(self, game, world_file):
         """ Build a new tileset from an image file """
         self.game = game
-        self.world_file = world_file
-        self.sprite_batch = game.floor_batch
-        self.sprites = {}
+        self.world_file  = world_file
+        self.floor_batch = game.floor_batch
+        self.wall_batch  = game.wall_batch
+        self.tiles = {}
         self.load_world()
         self.load_tileset()
 
@@ -26,6 +30,7 @@ class World(object):
     def load_tileset(self):
         pyglet.resource.reindex()
         img = self.game.load_image(self.mapdata['tileset'])
+        pixelate(img)
         scale = float(self.tilesize) / img.width * 16
         grid = pyglet.image.ImageGrid(img, 16, 16)
         map(pixelate, grid)
@@ -33,22 +38,36 @@ class World(object):
 
         for row, cols in enumerate(self.mapdata['map']):
             for col, value in enumerate(cols):
-                tile_image = self.tileset[value]
-                if (row, col) in self.sprites:
-                    self.sprites[row, col].image = tile_image
-                else:
-                    self.sprites[row, col] = pyglet.sprite.Sprite(
-                                              tile_image,
-                                              x = col*self.tilesize,
-                                              y = row*self.tilesize,
-                                              batch=self.sprite_batch)
-                self.sprites[row, col].scale = scale
+                self.tiles[row, col] = Tile(self, row, col, value)
 
-    def get_tile_at(self, x, y):
-        tx = int(floor(x/self.tilesize))
-        ty = int(floor(y/self.tilesize))
-        return self.mapdata['map'][ty][tx]
+    def wall_clip(self, x, y, dx, dy):
+        f = 1.0/self.tilesize
+        for gx, gy, t in grid_walk(x*f, y*f, (x+dx)*f, (y+dy)*f):
+            try:
+                if t and self.tiles[gy, gx].is_wall:
+                    return True
+            except KeyError:
+                return True
+        return False
 
     def draw(self):
         self.sprite_batch.draw()
+
+
+class Tile(object):
+    def __init__(self, world, row, col, value):
+        self.world = world
+        self.col = col
+        self.row = row
+        self.value = value
+        self.image = self.world.tileset[self.value]
+        self.sprite = pyglet.sprite.Sprite(
+            self.world.tileset[self.value],
+            x = self.col*self.world.tilesize,
+            y = self.row*self.world.tilesize)
+        self.sprite.scale = float(self.world.tilesize) / self.image.width
+
+        self.is_wall = 16 <= value < 32
+        self.sprite.batch = self.world.wall_batch if self.is_wall else self.world.floor_batch
+
 
