@@ -9,10 +9,55 @@ from ftl.world import World
 from ftl.util import normvec
 
 
+class LazySet(set):
+    ''' Like set(), but the add() and remove() actions are deferred until
+        sync() is called or an iterator is created. This allows modification
+        during iteration. Useful for callback lists where callbacks remove
+        temselve or add new callbacks. '''
+
+    def __init__(self):
+        self.__remove = set()
+        self.__add = set()
+        self.remove = self.__remove.add
+        self.add    = self.__add.add
+
+    def __iter__(self):
+        self.sync()
+        removed = self.__remove
+        for x in set.__iter__(self):
+            if x not in removed:
+                yield x
+   
+    def sync(self):
+        self.update(self.__add)
+        self -= self.__remove
+        self.__add.clear()
+        self.__remove.clear()
+        return set.__iter__(self)
+
+
+
 class Game(object):
     def __init__(self):
-        self.tick_callbacks = []
         self.camera_position = [0, 0, -512]
+        self.enemies  = LazySet()
+        self.entities = LazySet()
+        self.tick_callbacks = LazySet()
+
+    def create_entity(self, klass, *a, **ka):
+        entity = klass(self) 
+        entity.on_setup(*a, **ka)
+        self.entities.add(entity)
+        return entity
+
+    def remove_entity(self, e):
+        self.entities.remove(e)
+        e.on_remove()
+
+
+
+
+
 
     def start(self):
         self.window = pyglet.window.Window(800, 600)
@@ -29,7 +74,9 @@ class Game(object):
 
         self.fps_display  = pyglet.clock.ClockDisplay()
         self.fps_display.label.batch = self.window_batch
+
         self.window.set_handler('on_draw', self.on_draw)
+        self.window.set_handler('on_resize', self.on_resize)
 
         pyglet.clock.schedule_once(self.setup_resources, 0)
         pyglet.clock.schedule_once(self.setup_controls, 0)
@@ -57,8 +104,8 @@ class Game(object):
 
     def setup_player(self, dt):
         self.notice('Loading player...')
-        self.player = Player(self)
-        self.center_screen()
+        self.player = self.create_entity(Player)
+        self.center_camera()
 
     def setup_gameloop(self, dt):
         self.notice('Loading game state...')
@@ -67,49 +114,72 @@ class Game(object):
     def notice(self, msg):
         self.status_label.text = msg
 
+    def on_resize(self, w, h):
+        print "on resize", w, h
+        self.window_size = w, h
+
     def on_draw(self):
         self.window.clear()
-        w,h = self.window.width, self.window.height
+        w, h = self.window_size
+
+        # Setup perspective
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+        glOrtho(-w/2, w/2, -h/2, h/2, -10000, 10000)
 
         # Move camera above character
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
         glTranslatef(*map(int, self.camera_position))
 
-        glMatrixMode(GL_PROJECTION)
-        glLoadIdentity()
-        glOrtho(-w/2, w/2, -h/2, h/2, -10000, 10000)
-
+        # Draw everything but HUD
         self.floor_batch.draw()
         self.wall_batch.draw()
-
         self.object_batch.draw()
         self.effect_batch.draw()
 
+        # Draw HUD
         glLoadIdentity()
+        glTranslatef(-w/2, -h/2, -100)
         self.window_batch.draw()
 
     def on_tick(self, dt):
-        dx, dy = 0.0, 0.0
-        if self.keys[key.RIGHT]: dx += self.player.speed
-        if self.keys[key.LEFT]:  dx -= self.player.speed
-        if self.keys[key.UP]:    dy += self.player.speed
-        if self.keys[key.DOWN]:  dy -= self.player.speed
-        if self.keys[key.PLUS]:
-            self.camera_position[2] += 1
-        if self.keys[key.MINUS]:
-            self.camera_position[2] -= 1
+        self.handle_player_movement(dt)
+        self.handle_input(dt)
 
-        if self.keys[key.E]:
-            e = Enemy(self)
-        if self.keys[key.D]:
-            import pdb; pdb.set_trace()
+        for entity in self.entities:
+            entity.tick(dt)
+
+        for callback in self.tick_callbacks:
+            callback(dt)
+
+
+    def handle_player_movement(self, dt):
+        dx = 0.0
+        dy = 0.0
+
+        if self.keys[key.RIGHT]: dx += 1
+        if self.keys[key.LEFT]:  dx -= 1
+        if self.keys[key.UP]:    dy += 1
+        if self.keys[key.DOWN]:  dy -= 1
 
         if dx and dy:
-            dx *= 0.7071067811865476 #(.5**.5)
+            # Length of vector is always sqrt(2), so we devide it by sqrt(2)
+            # to get a uniform vector. Works only for diagonal movement.
+            dx *= 0.7071067811865476 # 1/sqrt(2)
             dy *= 0.7071067811865476
 
-        self.player.move(dx*dt, dy*dt)
+        if dx or dy:
+            self.player.move(dx*dt, dy*dt)
+            self.center_camera()
+        else:
+            self.player.move(0.0, 0.0) # Tell the player to stop
+
+    def handle_input(self, dt):
+        if self.keys[key.E]:
+            self.enemies.add(self.create_entity(Enemy, *self.player.position))
+        if self.keys[key.D]:
+            import pdb; pdb.set_trace()
 
         if self.keys[key.SPACE]:
             bx, by = self.player.last_move
@@ -122,32 +192,24 @@ class Game(object):
                 if self.player.face == 'down':   y -= 10
                 if self.player.face == 'right':  x += 15
                 if self.player.face == 'left':   x -= 15
-                bullet = Fireball(self, (x,y+10), (bx, by), 1.5)
+                bullet = self.create_entity(Fireball, x, y+10, bx, by)
 
-        if dx or dy:
-            self.center_screen()
-
-        for callback in self.tick_callbacks:
-            callback(dt)
-
-    def center_screen(self):
-        ''' Change window offset so the player sprite is in the middle of
-            the visible screen. '''
-        h, w = self.window.height, self.window.width
+    def center_camera(self):
+        ''' Move the camera above the player, but only if the player leaves a
+            save area. '''
         wx, wy, wz = self.camera_position
         px, py = self.player.position
 
-        # World position in center of screen
-        cx, cy = -wx, -wy
-
         # Desired world position in center of screen
-        cx = px - max(-30, min(30, px-cx))
-        cy = py - max(-30, min(30, py-cy))
+        wx = max(-30, min(30, px+wx)) - px
+        wy = max(-30, min(30, py+wy)) - py
 
-        self.camera_position = [-cx, -cy, wz]
+        self.camera_position = [wx, wy, wz]
+
+game = Game()
 
 def main():
-    Game().start()
+    game.start()
 
 if __name__ == '__main__':
     main()

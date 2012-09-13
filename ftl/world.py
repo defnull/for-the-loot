@@ -40,11 +40,19 @@ class World(object):
             for col, value in enumerate(cols):
                 self.tiles[row, col] = Tile(self, row, col, value)
 
+    def wall_walk(self, x, y, dx, dy):
+        f = 1.0/self.tilesize
+        for gx, gy, t, hv in grid_walk(x*f, y*f, (x+dx)*f, (y+dy)*f):
+            try:
+                yield self.tiles[gy, gx], x+dx*t, y+dy*t
+            except KeyError:
+                return
+
     def wall_clip(self, x, y, dx, dy):
         f = 1.0/self.tilesize
-        for gx, gy, t in grid_walk(x*f, y*f, (x+dx)*f, (y+dy)*f):
+        for gx, gy, t, hv in grid_walk(x*f, y*f, (x+dx)*f, (y+dy)*f):
             try:
-                if t and self.tiles[gy, gx].is_wall:
+                if self.tiles[gy, gx].is_wall:
                     return True
             except KeyError:
                 return True
