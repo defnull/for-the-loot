@@ -18,20 +18,19 @@ class Entity(object):
     def destroy(self):
         ''' Calls self.game.remove_entity(self) '''
         self.game.remove_entity(self)
-    
+
     def tick(self, dt):
         self.age += dt
         self.on_tick(dt)
 
     def on_setup(self, *a, **ka):
         ''' Called on entity creation. '''
-    
+
     def on_tick(self, dt):
         ''' Called on every tick as long as the entity belongs to a game. '''
 
     def on_remove(self):
         ''' Called when the entity is removed from a game. '''
-
 
 
 
@@ -107,6 +106,7 @@ class Fireball(Entity):
             e.kill()
 
         self.game.create_entity(Smoke, *self.position)
+        self.game.create_entity(Decal, *self.position)
         self.destroy()
 
 
@@ -115,7 +115,6 @@ class Smoke(Entity):
 
     def on_setup(self, x, y):
         self.position = [x, y]
-        self.age = 0.0
         self.sprite = self.make_sprite()
 
     def on_remove(self):
@@ -139,6 +138,38 @@ class Smoke(Entity):
         self.position[1] += dt*5
         self.sprite.position = map(int, self.position)
 
+
+
+
+
+class Decal(Entity):
+    live = 10.0
+    fade = 10.0
+
+    def on_setup(self, x, y):
+        self.position = [x, y]
+        self.sprite = self.make_sprite()
+        self.sprite.position = map(int, self.position)
+        self.sprite.rotation = random.randint(0,3) * 90
+        self.sprite.scale  = 2
+
+    def on_remove(self):
+        self.sprite.delete()
+
+    def make_sprite(self):
+        img  = self.game.load_image('crater.png')
+        pixelate(img)
+        center_image(img)
+        sprite = pyglet.sprite.Sprite(img, batch=self.game.effect_batch)
+        return sprite
+
+    def on_tick(self, dt):
+        if self.age > self.live+self.fade:
+            self.destroy()
+            return
+        if self.age > self.live:
+            fade = (self.age - self.live)/self.fade
+            self.sprite.opacity = 255 - 255 * fade
 
 
 

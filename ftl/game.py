@@ -9,6 +9,7 @@ from ftl.world import World
 from ftl.util import normvec
 
 
+
 class LazySet(set):
     ''' Like set(), but the add() and remove() actions are deferred until
         sync() is called or an iterator is created. This allows modification
@@ -27,7 +28,7 @@ class LazySet(set):
         for x in set.__iter__(self):
             if x not in removed:
                 yield x
-   
+
     def sync(self):
         self.update(self.__add)
         self -= self.__remove
@@ -45,7 +46,7 @@ class Game(object):
         self.tick_callbacks = LazySet()
 
     def create_entity(self, klass, *a, **ka):
-        entity = klass(self) 
+        entity = klass(self)
         entity.on_setup(*a, **ka)
         self.entities.add(entity)
         return entity
@@ -115,7 +116,6 @@ class Game(object):
         self.status_label.text = msg
 
     def on_resize(self, w, h):
-        print "on resize", w, h
         self.window_size = w, h
 
     def on_draw(self):
@@ -146,6 +146,7 @@ class Game(object):
     def on_tick(self, dt):
         self.handle_player_movement(dt)
         self.handle_input(dt)
+        self.notice('Entities: %d' % len(self.entities))
 
         for entity in self.entities:
             entity.tick(dt)
