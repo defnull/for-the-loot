@@ -64,7 +64,9 @@ class Game(object):
         self.window = pyglet.window.Window(800, 600)
         self.window.set_vsync(True)
 
+
         self.floor_batch  = pyglet.graphics.Batch()
+        self.decal_batch  = pyglet.graphics.Batch()
         self.object_batch = pyglet.graphics.Batch()
         self.effect_batch = pyglet.graphics.Batch()
         self.wall_batch  = pyglet.graphics.Batch()
@@ -134,6 +136,7 @@ class Game(object):
 
         # Draw everything but HUD
         self.floor_batch.draw()
+        self.decal_batch.draw()
         self.wall_batch.draw()
         self.object_batch.draw()
         self.effect_batch.draw()

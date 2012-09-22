@@ -88,7 +88,7 @@ class Fireball(Entity):
         grid = list(pyglet.image.ImageGrid(img, 1, 5))
         [(pixelate(g), center_image(g)) for g in grid]
         ani = Animation.from_image_sequence(grid, 0.05)
-        sprite = pyglet.sprite.Sprite(ani, batch=self.game.effect_batch)
+        sprite = pyglet.sprite.Sprite(ani, batch=self.game.object_batch)
         sprite.position = map(int, self.position)
         sprite.rotation = self.rotation
         sprite.scale = 2
@@ -152,6 +152,7 @@ class Decal(Entity):
         self.sprite.position = map(int, self.position)
         self.sprite.rotation = random.randint(0,3) * 90
         self.sprite.scale  = 2
+        self.sprite.opacity = 150
 
     def on_remove(self):
         self.sprite.delete()
@@ -160,7 +161,7 @@ class Decal(Entity):
         img  = self.game.load_image('crater.png')
         pixelate(img)
         center_image(img)
-        sprite = pyglet.sprite.Sprite(img, batch=self.game.effect_batch)
+        sprite = pyglet.sprite.Sprite(img, batch=self.game.decal_batch)
         return sprite
 
     def on_tick(self, dt):
@@ -169,7 +170,7 @@ class Decal(Entity):
             return
         if self.age > self.live:
             fade = (self.age - self.live)/self.fade
-            self.sprite.opacity = 255 - 255 * fade
+            self.sprite.opacity = 150 - 150 * fade
 
 
 
