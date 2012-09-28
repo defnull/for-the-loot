@@ -207,6 +207,7 @@ class Game(object):
         wy = max(-30, min(30, py+wy)) - py
 
         self.camera_position = [wx, wy, wz]
+        self.world.light(*self.player.position)
 
 game = Game()
 

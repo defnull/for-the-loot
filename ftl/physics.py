@@ -81,4 +81,3 @@ def point_near_line(x1, y1, x2, y2, px, py):
     dist = ((px-cpx)**2 + (py-cpy)**2) ** 0.5
     return cpx, cpy, dist
 
-

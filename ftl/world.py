@@ -18,9 +18,11 @@ class World(object):
         self.world_file  = world_file
         self.floor_batch = game.floor_batch
         self.wall_batch  = game.wall_batch
+        self.lightmap = LightMap()
         self.tiles = {}
         self.load_world()
         self.load_tileset()
+        self.player_light = self.lightmap.add_light(0,0,15)
 
     def load_world(self):
         with open(self.world_file, 'r') as fp:
@@ -38,7 +40,9 @@ class World(object):
 
         for row, cols in enumerate(self.mapdata['map']):
             for col, value in enumerate(cols):
-                self.tiles[row, col] = Tile(self, row, col, value)
+                tile = self.tiles[row, col] = Tile(self, row, col, value)
+                if tile.is_wall:
+                    self.lightmap.set_wall(col, row)
 
     def wall_walk(self, x, y, dx, dy):
         f = 1.0/self.tilesize
@@ -61,6 +65,62 @@ class World(object):
     def draw(self):
         self.sprite_batch.draw()
 
+    def light(self, x, y):
+        self.player_light = self.lightmap.change_light(self.player_light, float(x)/32, float(y)/32, 60)
+        for tile in self.tiles.values():
+            lv = self.lightmap.compute(tile.col, tile.row)
+            lv = int(25+lv*220)
+            tile.shade(lv,lv,lv,lv)
+
+
+class LightMap(object):
+    def __init__(self):
+        self.walls = set()
+        self.lights = set()
+        self.light_values = {}
+
+    def set_wall(self, x, y):
+        self.walls.add((x,y))
+
+    def set_floor(self, x, y):
+        self.walls.remove((x,y))
+
+    def add_light(self, x, y, value):
+        light = (x,y,value)
+        self.lights.add(light)
+        return light
+
+    def change_light(self, orig, x, y, value):
+        light = (x,y,value)
+        self.lights.discard(orig)
+        self.lights.add(light)
+        return light
+
+    def remove_light(self, x, y, value):
+        light = (x,y,value)
+        self.lights.remove(light)
+
+    def compute(self, x, y):
+        light = 0.0
+        def hits_wall(x, y):
+            for gx, gy, t, hv in grid_walk(x, y, lx, ly):
+                if t and (gx, gy) in self.walls:
+                    return True
+
+        for lx,ly,lv in self.lights:
+            d = ((x-lx)**2 + (y-ly)**2)
+            if d>lv: continue
+
+            lv = 1-d/lv
+            if lv < light: continue
+            if hits_wall(float(x+.5), float(y+.5)): continue
+
+            if lv > light: light = lv
+            if light >= 0.95: return 1.0
+        return light
+
+
+
 
 class Tile(object):
     def __init__(self, world, row, col, value):
@@ -77,5 +137,9 @@ class Tile(object):
 
         self.is_wall = 16 <= value < 32
         self.sprite.batch = self.world.wall_batch if self.is_wall else self.world.floor_batch
+
+    def shade(self, tl, tr, br, bl):
+        for index, shade in enumerate((tl, tr, br, bl)):
+            self.sprite._vertex_list.colors[index*4:index*4+3] = [shade, shade, shade]
 
 
