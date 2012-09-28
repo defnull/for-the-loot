@@ -75,9 +75,6 @@ class Game(object):
                                               font_size=8, x=10, y=10,
                                               batch=self.window_batch)
 
-        self.fps_display  = pyglet.clock.ClockDisplay()
-        self.fps_display.label.batch = self.window_batch
-
         self.window.set_handler('on_draw', self.on_draw)
         self.window.set_handler('on_resize', self.on_resize)
 
@@ -123,11 +120,14 @@ class Game(object):
     def on_draw(self):
         self.window.clear()
         w, h = self.window_size
+        self.notice('Entities: %d FPS: %d' % (
+            len(self.entities),
+            pyglet.clock.get_fps()))
 
         # Setup perspective
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        glOrtho(-w/2, w/2, -h/2, h/2, -10000, 10000)
+        glOrtho(-w/2, w/2, -h/2, h/2, -100, 10000)
 
         # Move camera above character
         glMatrixMode(GL_MODELVIEW)
@@ -149,14 +149,12 @@ class Game(object):
     def on_tick(self, dt):
         self.handle_player_movement(dt)
         self.handle_input(dt)
-        self.notice('Entities: %d' % len(self.entities))
 
         for entity in self.entities:
             entity.tick(dt)
 
         for callback in self.tick_callbacks:
             callback(dt)
-
 
     def handle_player_movement(self, dt):
         dx = 0.0
