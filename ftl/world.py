@@ -66,11 +66,15 @@ class World(object):
         self.sprite_batch.draw()
 
     def light(self, x, y):
-        self.player_light = self.lightmap.change_light(self.player_light, float(x)/32, float(y)/32, 60)
+        self.player_light = self.lightmap.change_light(self.player_light, float(x)/32, float(y)/32, 6)
         for tile in self.tiles.values():
-            lv = self.lightmap.compute(tile.col, tile.row)
-            lv = int(25+lv*220)
-            tile.shade(lv,lv,lv,lv)
+            tx, ty = float(tile.col), float(tile.row)
+            lv = (self.lightmap.compute(tx+.25, ty+.75),
+                  self.lightmap.compute(tx+.75, ty+.75),
+                  self.lightmap.compute(tx+.75, ty+.25),
+                  self.lightmap.compute(tx+.25, ty+.25))
+            lv = [int(15+sum(lv)/4*250)]*4
+            tile.shade(*lv)
 
 
 class LightMap(object):
@@ -83,7 +87,7 @@ class LightMap(object):
         self.walls.add((x,y))
 
     def set_floor(self, x, y):
-        self.walls.remove((x,y))
+        self.walls.discard((x,y))
 
     def add_light(self, x, y, value):
         light = (x,y,value)
@@ -107,13 +111,13 @@ class LightMap(object):
                 if t and (gx, gy) in self.walls:
                     return True
 
-        for lx,ly,lv in self.lights:
-            d = ((x-lx)**2 + (y-ly)**2)
+        for lx, ly, lv in self.lights:
+            d = ((x-lx)**2 + (y-ly)**2) ** .5
             if d>lv: continue
 
             lv = 1-d/lv
             if lv < light: continue
-            if hits_wall(float(x+.5), float(y+.5)): continue
+            if hits_wall(x, y): continue
 
             if lv > light: light = lv
             if light >= 0.95: return 1.0
